@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 智能起名 - 流式实时生成</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    .header {
+      text-align: center;
+      padding: 40px 0 30px;
+      color: #fff;
+    }
+    .header h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    .header p { font-size: 1.1rem; opacity: 0.9; }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .form-group { margin-bottom: 24px; }
+    .form-group label {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .options { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .option-btn {
+      padding: 10px 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 25px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+    .option-btn:hover { border-color: #667eea; color: #667eea; }
+    .option-btn.active { border-color: #667eea; background: #667eea; color: #fff; }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 18px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #667eea; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      margin-top: 10px;
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    .loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+    .stream-box {
+      margin-top: 24px;
+      background: #f8f9fa;
+      border: 1px dashed #c5c5c5;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 360px;
+      overflow-y: auto;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: #555;
+    }
+
+    .stream-box.ready { border-style: solid; border-color: #667eea; }
+
+    .results { margin-top: 30px; }
+    .result-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .group-block { margin-bottom: 28px; }
+    .group-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #764ba2;
+      margin-bottom: 14px;
+      padding-left: 12px;
+      border-left: 4px solid #764ba2;
+    }
+
+    .name-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+
+    .name-card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf7 100%);
+      border-radius: 14px;
+      padding: 18px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .name-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+    }
+    .name-main { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+    .name-text { font-size: 1.6rem; font-weight: 700; color: #333; letter-spacing: 3px; }
+    .name-pinyin { font-size: 0.85rem; color: #888; }
+    .name-meaning { font-size: 0.85rem; color: #555; line-height: 1.55; margin-bottom: 6px; }
+    .name-source { font-size: 0.78rem; color: #999; font-style: italic; }
+
+    .error-message {
+      background: #fee; color: #c33; padding: 15px;
+      border-radius: 10px; margin-top: 20px; text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 { font-size: 1.8rem; }
+      .card { padding: 20px; }
+      .name-text { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✨ AI 智能起名</h1>
+      <p>流式实时生成 · 3 组方案 · 附带寓意解析</p>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label>性别偏好</label>
+        <div class="options" id="genderOptions">
+          <button class="option-btn active" data-value="male">男孩</button>
+          <button class="option-btn" data-value="female">女孩</button>
+          <button class="option-btn" data-value="neutral">中性</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>风格偏好</label>
+        <div class="options" id="styleOptions">
+          <button class="option-btn active" data-value="traditional">传统古典</button>
+          <button class="option-btn" data-value="modern">现代时尚</button>
+          <button class="option-btn" data-value="literary">文艺书卷</button>
+          <button class="option-btn" data-value="heroic">大气磅礴</button>
+          <button class="option-btn" data-value="cute">可爱俏皮</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>寓意期望（可选）</label>
+        <input type="text" id="meaningInput" placeholder="例如：希望孩子聪明伶俐、健康成长..." />
+      </div>
+
+      <button class="submit-btn" id="generateBtn" onclick="startStreaming()">
+        🎯 开始生成名字
+      </button>
+
+      <div id="streamBox" class="stream-box" style="display:none;"></div>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <script>
+    let selectedGender = 'male';
+    let selectedStyle = 'traditional';
+
+    function setupOptions(groupId, setter) {
+      const group = document.getElementById(groupId);
+      group.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          setter(btn.dataset.value);
+        });
+      });
+    }
+    setupOptions('genderOptions', v => selectedGender = v);
+    setupOptions('styleOptions', v => selectedStyle = v);
+
+    async function startStreaming() {
+      const btn = document.getElementById('generateBtn');
+      const results = document.getElementById('results');
+      const streamBox = document.getElementById('streamBox');
+      const meaning = document.getElementById('meaningInput').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"><span class="spinner"></span> AI 正在构思中...</span>';
+      results.innerHTML = '';
+      streamBox.style.display = 'block';
+      streamBox.classList.remove('ready');
+      streamBox.textContent = '';
+
+      try {
+        const response = await fetch('/api/name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gender: selectedGender,
+            style: selectedStyle,
+            meaning: meaning
+          })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `请求失败 (${response.status})`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let done = false;
+
+        streamBox.classList.add('ready');
+
+        while (!done) {
+          const { value, done: d } = await reader.read();
+          done = d;
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith('data:')) continue;
+              const dataStr = trimmed.slice(5).trim();
+              if (!dataStr) continue;
+
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.done) continue;
+                if (data.token) {
+                  streamBox.textContent += data.token;
+                  streamBox.scrollTop = streamBox.scrollHeight;
+                }
+              } catch { /* skip */ }
+            }
+          }
+        }
+
+        const raw = streamBox.textContent;
+        renderStructured(raw, results, streamBox);
+      } catch (error) {
+        results.innerHTML = `<div class="error-message">❌ ${error.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🎯 重新生成';
+      }
+    }
+
+    function renderStructured(raw, results, streamBox) {
+      let data = null;
+      try {
+        const m = raw.match(/\{[\s\S]*\}/);
+        data = m ? JSON.parse(m[0]) : JSON.parse(raw);
+      } catch {
+        data = null;
+      }
+
+      if (data && Array.isArray(data.groups)) {
+        streamBox.style.display = 'none';
+        results.innerHTML = '<div class="result-title">🌟 为你生成的 3 组好名字</div>' +
+          data.groups.map(group => `
+            <div class="group-block">
+              <div class="group-title">📌 ${group.theme || '主题组'}</div>
+              <div class="name-grid">
+                ${(group.names || []).map(n => `
+                  <div class="name-card">
+                    <div class="name-main">
+                      <span class="name-text">${n.name || ''}</span>
+                      <span class="name-pinyin">${n.pinyin || ''}</span>
+                    </div>
+                    <div class="name-meaning">📖 ${n.meaning || ''}</div>
+                    ${n.source ? `<div class="name-source">💡 ${n.source}</div>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+      } else {
+        results.innerHTML = '<div class="result-title">📝 AI 原始输出</div>' +
+          '<p style="color:#888;font-size:0.85rem;text-align:center;margin-bottom:12px;">（可在上方流式框查看，JSON 解析失败，可能是输出格式问题）</p>';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "ai-name-generator",
+  "version": "1.0.0",
+  "description": "AI-powered streaming name generator with Supabase storage on Vercel",
+  "main": "api/name.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
